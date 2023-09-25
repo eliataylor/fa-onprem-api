@@ -34,7 +34,7 @@ def macIdtoInteger(macId):
         return None    
     return int(res.group(0).replace(':', ''), 16)
 
-def mock_frame_grab():
+def mock_frame_grab(camId=None):
     f = open (f'{os.path.dirname(__file__)}/mocked_b64_frames.json', "r")
     data = json.loads(f.read())
 

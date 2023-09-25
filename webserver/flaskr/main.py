@@ -63,6 +63,11 @@ settings.api = Api(blueprint,version='1.0', title='Flexible Vision Camera Server
 
 from api.endpoints.test import ns as test_ns
 settings.api.add_namespace(test_ns)
+
+from api.endpoints.motion_detection import ns as motion_ns
+settings.api.add_namespace(motion_ns)
+
+
 CORS(app, resources=r'/api/*', allow_headers='*')
 app.register_blueprint(blueprint)
 
