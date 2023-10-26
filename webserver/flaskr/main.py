@@ -67,6 +67,9 @@ settings.api.add_namespace(test_ns)
 from api.endpoints.motion_detection import ns as motion_ns
 settings.api.add_namespace(motion_ns)
 
+from api.endpoints.image_manipulation import ns as manipulation_ns
+settings.api.add_namespace(manipulation_ns)
+
 
 CORS(app, resources=r'/api/*', allow_headers='*')
 app.register_blueprint(blueprint)

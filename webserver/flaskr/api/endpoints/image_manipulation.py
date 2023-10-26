@@ -21,61 +21,77 @@ request_model = ns.model('ImageManipulationModel', {
 
 FILTERS = {
     "grayscale": cv2.COLOR_BGR2GRAY,
-    "gaussian_blur": cv2.GaussianBlur,
-    "median_blur": cv2.medianBlur,
-    "bilateral_filter": cv2.bilateralFilter,
-    "canny_edge_detection": cv2.Canny,
-    "sobel_filter": cv2.Sobel,
-    "laplacian_filter": cv2.Laplacian,
-    "thresholding": cv2.threshold,
-    "adaptive_thresholding": cv2.adaptiveThreshold,
-    "denoising": cv2.fastNlMeansDenoising,
-    "morphological_erosion": cv2.erode,
-    "morphological_dilation": cv2.dilate,
-    "morphological_operations": cv2.morphologyEx,
+    "GaussianBlur": cv2.GaussianBlur,
+    "medianBlur": cv2.medianBlur,
+    "bilateralFilter": cv2.bilateralFilter,
+    "Canny": cv2.Canny,
+    "Sobel": cv2.Sobel,
+    "Laplacian": cv2.Laplacian,
+    "threshold": cv2.threshold,
+    "adaptiveThreshold": cv2.adaptiveThreshold,
+    "fastNlMeansDenoising": cv2.fastNlMeansDenoising,
+    "erode": cv2.erode,
+    "dilate": cv2.dilate,
+    "morphologyEx": cv2.morphologyEx,
 #    "color_space_conversions": {
         "BGR2HSV": cv2.COLOR_BGR2HSV,
         "BGR2YUV": cv2.COLOR_BGR2YUV,
         # Add more color space conversions as needed
 #    },
-    "histogram_equalization": cv2.equalizeHist,
-    "custom_kernel_convolution": cv2.filter2D,
-    "resize_and_scaling": cv2.resize,
+    "equalizeHist": cv2.equalizeHist,
+    "filter2D": cv2.filter2D,
+    "resize": cv2.resize,
  #   "rotation_and_affine_transformations": {
-        "get_rotation_matrix": cv2.getRotationMatrix2D,
-        "warp_affine": cv2.warpAffine,
+        "getRotationMatrix2D": cv2.getRotationMatrix2D,
+        "warpAffine": cv2.warpAffine,
 #    },
-    "image_warping": cv2.warpPerspective,
-    "image_blending": cv2.addWeighted
+    "warpPerspective": cv2.warpPerspective,
+    "addWeighted": cv2.addWeighted
 }
 
 
-@app.route('/image_manipulation', methods=['POST'])
+@ns.route('/image_manipulation', methods=['POST'])
 class ImageManipulation(Resource):
 
     @ns.expect(request_model)  # Use the expect decorator with the request model
     def post(self):
         try:
-            # Get filter name, filter value, and base64 string from the request
-            filter_name = request.json.get('filter_name')
-            filter_value = request.json.get('filter_value')
-            base64_string = request.json.get('base64_string')
+            data = request.get_json()
 
-            if filter_name not in FILTERS:
+            if not data:
+                return {"error": "No JSON data provided"}, 400
+
+            efx_name = data.get('efx_name', None)
+            efx_value = data.get('efx_value', None)
+            b64 = data.get('base64', None)
+
+            if efx_value is None:
+                return {"error": "filter value missing"}, 400
+
+            if efx_name is None:
+                return {"error": "filter missing"}, 400
+
+            if b64 is None:
+                return {"error": "Missing image"}, 400
+
+            if efx_name not in FILTERS:
                 return jsonify({"error": "Invalid filter name"}), 400
 
             # Decode the base64 string into a numpy array
-            image_data = base64.b64decode(base64_string)
+            image_data = base64.b64decode(b64)
             nparr = np.frombuffer(image_data, np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
             # Apply the selected filter
-            if filter_name == "grayscale":
-                image = cv2.cvtColor(image, FILTERS[filter_name])
+            if efx_name == "grayscale":
+                image = cv2.cvtColor(image, FILTERS[efx_name])
+            elif efx_name == "GaussianBlur":
+                efx_value = int(data.get('efx_value', 5))
+                image = cv2.GaussianBlur(image, (efx_value, efx_value), 0)
             else:
-                image = FILTERS[filter_name](image, filter_value)
+                # THIS WON'T WORK FOR ALL FILTERS OBVIOUSLY!
+                image = FILTERS[efx_name](image, efx_value)
 
-            # Encode the processed image as base64
             _, encoded_image = cv2.imencode(".jpg", image)
             base64_filtered = base64.b64encode(encoded_image).decode('utf-8')
 
