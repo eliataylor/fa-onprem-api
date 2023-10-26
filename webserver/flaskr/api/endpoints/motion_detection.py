@@ -113,6 +113,12 @@ class MotionDetection(Resource):
             diff = cv2.absdiff(last_seen_np, merged_np)
 
             # another approach since
+            mse = np.mean((last_seen_np - merged_np) ** 2)
+            max_possible_mse = 255 ** 2
+            mse_percentage = (mse / max_possible_mse) * 100
+
+            # another approach since
+            # l1_diff =  np.square(last_seen_np - merged_np)
             l1_diff = np.sum(np.abs(last_seen_np - merged_np))
             max_possible_diff = 255 * baseImage.size
             l1_diff_percentage = (l1_diff / max_possible_diff) * 1
