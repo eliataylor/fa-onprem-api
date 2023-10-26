@@ -79,7 +79,7 @@ class ImageManipulation(Resource):
             _, encoded_image = cv2.imencode(".jpg", image)
             base64_filtered = base64.b64encode(encoded_image).decode('utf-8')
 
-            return jsonify({"filtered_base64": base64_filtered})
+            return jsonify({"b64": base64_filtered})
 
         except Exception as e:
             return jsonify({"error": str(e)}), 500
