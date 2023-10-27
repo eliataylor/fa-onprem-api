@@ -2,13 +2,9 @@ from flask import jsonify
 from flask import request
 from flask_restx import Resource, fields, Namespace
 from utils.helper import *
-import requests
 import cv2
 import numpy as np
 import base64
-import re
-from PIL import Image
-from io import BytesIO
 
 ns = Namespace('test', description='Skeleton flask app')
 

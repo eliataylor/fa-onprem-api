@@ -4,11 +4,9 @@ from flask_restx import Resource, fields, Namespace
 from utils.helper import *
 import requests
 import cv2
-import math
 import numpy as np
 import time
 from PIL import Image
-from skimage import io
 from skimage.metrics import structural_similarity as ssim
 from io import BytesIO
 import base64

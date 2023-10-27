@@ -1,8 +1,7 @@
 Run Skeleton Server From Source
 
-pip3 install -r requirements.txt
-
-python3 webserver/flaskr/main.py
+- `pip3 install -r requirements.txt`
+- `python3 webserver/flaskr/main.py`
 
 
 
