@@ -6,14 +6,15 @@ import requests
 import cv2
 import math
 import numpy as np
-import base64
 import time
 from PIL import Image
+from skimage import io
+from skimage.metrics import structural_similarity as ssim
 from io import BytesIO
+import base64
 
 ns = Namespace('test', description='Skeleton flask app')
 
-# from skimage.metrics import structural_similarity as ssim
 
 # Define the expected request model (JSON body)
 request_model = ns.model('MotionDetectionModel', {
@@ -21,7 +22,7 @@ request_model = ns.model('MotionDetectionModel', {
     'camhost': fields.String(description='Camera Server Host', required=True),
     'fvhost': fields.String(description='Mask Server Host', required=True),
     'maskId': fields.String(description='ID of Mask to ignore areas of change'),
-    'threshold': fields.Integer(description='Threshold value', required=True),
+    'threshold': fields.Float(description='Threshold value -1 (no similarity) to 1 (identical)', required=True),
     'debounce': fields.Integer(description='Milliseconds to wait for retry. Use a negative value to return anyway and allow front-end to poll this endpoint', required=True)
 })
 
@@ -79,7 +80,7 @@ class MotionDetection(Resource):
         mask = data.get('mask', None)
         camHost = data.get('camhost', None)
         detectHost = data.get('fvhost', None)
-        threshold = int(data.get('threshold', 0))
+        threshold = float(data.get('threshold', 0))
         debounce = int(data.get('debounce', 250))
 
         tmpname = f'/tmp/lastseen-{camId}.jpg'  # maybe prefix the name with a client id?
@@ -97,53 +98,32 @@ class MotionDetection(Resource):
 
         last_seen_np = cv2.imread(tmpname, cv2.IMREAD_UNCHANGED)
         if last_seen_np is None:
-            response_data = {"diff": 100}
+            response_data = {"diff": -1}
         else:
-            last_seen = Image.open(tmpname)
-            last_seen.convert('RGB')
-            last_seen = last_seen.resize(baseImage.size)
-            last_seen_np = np.array(last_seen)
-
-            merged_np = np.array(baseImage)
-
-            merged_np = merged_np.astype(np.uint8)
+            baseimage_np = np.array(baseImage)
+            baseimage_np = baseimage_np.astype(np.uint8)
             last_seen_np = last_seen_np.astype(np.uint8)
+            win_size = min(min(baseimage_np.shape), min(last_seen_np.shape), 7)
 
-            # Calculate the absolute difference between frames
-            diff = cv2.absdiff(last_seen_np, merged_np)
+            # Calculate the SSIM score with the specified window size
+            similarity_score = ssim(baseimage_np, last_seen_np, win_size=win_size, multichannel=True)
 
-            # another approach since
-            mse = np.mean((last_seen_np - merged_np) ** 2)
-            max_possible_mse = 255 ** 2
-            mse_percentage = (mse / max_possible_mse) * 100
-
-            # another approach since
-            # l1_diff =  np.square(last_seen_np - merged_np)
-            l1_diff = np.sum(np.abs(last_seen_np - merged_np))
-            max_possible_diff = 255 * baseImage.size
-            l1_diff_percentage = (l1_diff / max_possible_diff) * 1
-
-            total_diff = diff.sum()
-            pixels = baseImage.height * baseImage.width
-            average_diff = math.floor(100 * (total_diff / pixels))
-
-            response_data = {"diff": round(average_diff)}
+            response_data = {"diff": similarity_score}
 
         baseImage.save(tmpname, format="JPEG")
+        buffered = BytesIO()
+        baseImage.save(buffered, format="JPEG")
+        response_data["b64"] = base64.b64encode(buffered.getvalue()).decode()
 
         if response_data['diff'] > threshold:
             response_data["changed"] = True
-            buffered = BytesIO()
-            baseImage.save(buffered, format="JPEG")
-            response_data["b64"] = base64.b64encode(buffered.getvalue()).decode()
-
             return response_data, 200
         else:
             if debounce > 0:
                 time.sleep(debounce / 1000)
                 self.compareImages(data)
             else:
-                return response_data, 200 # this allows the front-end to control retries by debounce
+                return response_data, 200 # negative debounce allows the front-end to control retries by polling this endpoint
 
 
     @ns.expect(request_model)
