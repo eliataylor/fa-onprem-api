@@ -35,8 +35,8 @@ class MotionDetection(Resource):
         image2 = image2.resize(image1.size)
         result_image = image1.copy()
 
-        # image1.save('/tmp/lastseen-bg.png', format="JPEG")
-        # image2.save('/tmp/lastseen-mask.png', format="PNG")
+        image1.save('/tmp/lastseen-bg.png', format="JPEG")
+        image2.save('/tmp/lastseen-mask.png', format="PNG")
 
         result_image.paste(image2, (0, 0), image2)
         result_image = result_image.convert("RGB")
@@ -78,7 +78,11 @@ class MotionDetection(Resource):
         mask = data.get('mask', None)
         camHost = data.get('camhost', None)
         detectHost = data.get('fvhost', None)
-        threshold = float(data.get('threshold', 0))
+        threshold = data.get('threshold', 50)
+        if threshold is None:
+            threshold = 0
+        else:
+            threshold = float(data.get("threshold", 50))
         debounce = int(data.get('debounce', 250))
 
         tmpname = f'/tmp/lastseen-{camId}.jpg'  # maybe prefix the name with a client id?
@@ -95,25 +99,30 @@ class MotionDetection(Resource):
             baseImage = self.mergeBase64(baseImage, mask_str)
 
         last_seen_np = cv2.imread(tmpname, cv2.IMREAD_UNCHANGED)
+        baseimage_np = np.array(baseImage)
+
         if last_seen_np is None:
-            response_data = {"diff": -1}
+            response_data = {"score": 100}
         else:
-            baseimage_np = np.array(baseImage)
-            baseimage_np = baseimage_np.astype(np.uint8)
-            last_seen_np = last_seen_np.astype(np.uint8)
-            win_size = min(min(baseimage_np.shape), min(last_seen_np.shape), 7)
+            if last_seen_np.shape != baseimage_np.shape:
+                similarity_score = 100 # just update the file and wait until next round
+            else:
+                baseimage_np = baseimage_np.astype(np.uint8)
+                last_seen_np = last_seen_np.astype(np.uint8)
 
-            # Calculate the SSIM score with the specified window size
-            similarity_score = ssim(baseimage_np, last_seen_np, win_size=win_size, multichannel=True)
+                win_size = min(min(baseimage_np.shape), min(last_seen_np.shape))
+                similarity_score = ssim(baseimage_np, last_seen_np, win_size=win_size)
+                # similarity_score = 0 if similarity_score > 0 else (similarity_score + 1) * 50  # as percent > 0
+                similarity_score = (similarity_score + 1) * 50  # as percentage of (-1 to 1)
 
-            response_data = {"diff": similarity_score}
+            response_data = {"score": similarity_score}
 
         baseImage.save(tmpname, format="JPEG")
         buffered = BytesIO()
         baseImage.save(buffered, format="JPEG")
         response_data["b64"] = base64.b64encode(buffered.getvalue()).decode()
 
-        if response_data['diff'] > threshold:
+        if threshold < response_data['score']:
             response_data["changed"] = True
             return response_data, 200
         else:
