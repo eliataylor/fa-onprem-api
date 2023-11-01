@@ -27,7 +27,7 @@ request_model = ns.model('MotionDetectionModel', {
 @ns.route('/detect_motion')
 class MotionDetection(Resource):
 
-    def mergeBase64(self, bg, mask):
+    def mergeBase64(self, bg, mask, camId):
         image1 = Image.open(BytesIO(base64.b64decode(bg)))
         image2 = Image.open(BytesIO(base64.b64decode(mask)))
         if image2.mode != 'RGBA':
@@ -35,8 +35,8 @@ class MotionDetection(Resource):
         image2 = image2.resize(image1.size)
         result_image = image1.copy()
 
-        image1.save('/tmp/lastseen-bg.png', format="JPEG")
-        image2.save('/tmp/lastseen-mask.png', format="PNG")
+        image1.save(f"/tmp/lastseen-{camId}-bg.png", format="JPEG")
+        image2.save(f"/tmp/lastseen-{camId}-mask.png", format="PNG")
 
         result_image.paste(image2, (0, 0), image2)
         result_image = result_image.convert("RGB")
@@ -64,7 +64,8 @@ class MotionDetection(Resource):
             if response.status_code == 200:
                 json_data = response.json()
                 if "b64" in json_data:
-                    return json_data["b64"]
+                    image1 = Image.open(BytesIO(base64.b64decode(json_data["b64"])))
+                    return image1
                 else:
                     return {"error": f"camera id not found"}, 404
             else:
@@ -85,7 +86,7 @@ class MotionDetection(Resource):
             threshold = float(data.get("threshold", 50))
         debounce = int(data.get('debounce', 250))
 
-        tmpname = f'/tmp/lastseen-{camId}.jpg'  # maybe prefix the name with a client id?
+        tmpname = f'/tmp/lastseen-{camId}-flat.jpg'  # maybe prefix the name with a client id?
 
         frameImage = self.getCameraImage(camHost, camId)
         if not isinstance(frameImage, str):
@@ -96,7 +97,12 @@ class MotionDetection(Resource):
             mask_str = self.getMaskById(detectHost, mask)
             if not isinstance(mask_str, str):
                 return mask_str
-            baseImage = self.mergeBase64(baseImage, mask_str)
+            baseImage = self.mergeBase64(baseImage, mask_str, camId)
+
+        # reduce image to 640 wide / downsize only
+        if baseImage.size.width > 640:
+            new_height = int(baseImage.size.height * (640 / baseImage.size.width))
+            baseImage = baseImage.resize((640, new_height), Image.ANTIALIAS)
 
         last_seen_np = cv2.imread(tmpname, cv2.IMREAD_UNCHANGED)
         baseimage_np = np.array(baseImage)
