@@ -91,19 +91,20 @@ class ImageManipulation(Resource):
             inspected = FILTERPARAMS[efx_name]
             topass = []
             for param in inspected:
+
                 type, index = inspected[param]["type"], inspected[param]["index"]
 
                 if param == 'src':
                     topass.insert(index, nparr)
-                elif param == 'dst' or type == 'Mat':
+                elif param == 'dst':
                     height, width, channels = image.shape
                     dst = np.zeros((height, width, channels), dtype=np.uint8)
                     topass.insert(index, dst)
-                elif param == 'borderType':
-                    topass.insert(index, getattr(cv2, efx_value[param]))
                 else:
                     if param not in efx_value:
                         print('invalid param passed ' + param)
+                    elif efx_value[param] is None or efx_value[param] == '':
+                        continue
                     elif type == 'Point' or type == 'Point2f':
                         point = self.parse_point(efx_value[param])
                         topass.insert(index, point)
@@ -112,10 +113,17 @@ class ImageManipulation(Resource):
                             cast = int(efx_value[param])
                         elif type == 'double':
                             cast = float(efx_value[param])
+                        elif type == 'Scalar':
+                            cast = getattr(cv2, efx_value[param])
+                        elif type == 'bool':
+                            cast = bool(efx_value[param])
                         elif type == 'Size':
                             cast = self.parse_size(efx_value[param])
+                        elif type == 'Mat': # src2
+                            cast = cv2.imdecode(np.frombuffer(base64.b64decode(efx_value[param]), np.uint8), cv2.IMREAD_COLOR)
                         else:
                             cast = efx_value[param]
+
                         topass.insert(index, cast)
 
             image = method_function(*topass)
