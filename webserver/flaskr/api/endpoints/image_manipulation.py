@@ -83,29 +83,11 @@ class ImageManipulation(Resource):
                 return jsonify({"error": "Invalid filter name"}), 400
 
             binary_data = base64.b64decode(b64)
-
-            """
-            with open("/tmp/b64-src.txt", "w") as file:
-                file.write(b64)
-            with open("/tmp/binary-b64decodes.png", "wb") as file:
-                file.write(binary_data)
-            binary_data = base64.decodebytes(b64.encode("utf-8"))
-            with open("/tmp/binary-decodebytes.png", "wb") as file:
-                file.write(binary_data)
-            binary_data = base64.standard_b64decode(b64)
-            with open("/tmp/binary-standard_b64decode.png", "wb") as file:
-                file.write(binary_data)
-            binary_data = codecs.decode(b64.encode("utf-8"), "base64")
-            with open("/tmp/binary-codecs.png", "wb") as file:
-                file.write(binary_data)
-            """
-
             mime_type = imghdr.what(None, h=binary_data)
             src_np = np.frombuffer(binary_data, np.uint8)
+            src_image = Image.open(BytesIO(binary_data))
 
-            # image = Image.fromarray(src_np)
 
-            image = Image.open(BytesIO(binary_data))
 
             parameters = FILTERPARAMS[efx_name]
             topass = []
@@ -147,13 +129,18 @@ class ImageManipulation(Resource):
 
             method_function = FILTERS[efx_name]
             resp_np = method_function(*topass)
-            resp_image = Image.fromarray(resp_np)
+            # resp_image = Image.fromarray(resp_np)
 
+            resp_b64 = base64.b64encode(resp_np.tobytes()).decode("utf-8")
+            # resp_b64 = base64.b64encode(src_np.tobytes()).decode("utf-8")
 
-            buffer = BytesIO()
-            resp_image.save(buffer, format=mime_type)  # You can specify the desired image format (e.g., PNG)
+            # image = Image.fromarray(src_np)
+            # image = Image.open(BytesIO(binary_data))
+
+            # buffer = BytesIO()
+            # resp_image.save(buffer, format=mime_type)  # You can specify the desired image format (e.g., PNG)
             # image = Image.open(buffer)
-            resp_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            # resp_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
             return jsonify({"b64": resp_b64})
 
