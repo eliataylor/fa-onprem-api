@@ -20,12 +20,12 @@ ns = Namespace('test', description='Skeleton flask app')
 # Define the expected request model (JSON body)
 request_model = ns.model('ImageManipulationModel', {
     'base64': fields.String(description='base64 string', required=True),
-    'filter': fields.String(description='Filter name', required=True),
-    'value': fields.String(description='Filter value', required=True)
+    'efx_name': fields.String(description='Filter name', required=True),
+    'efx_value': fields.String(description='Filter value', required=True)
 })
 
 FILTERS = {
-    "grayscale": cv2.COLOR_BGR2GRAY,
+    "cvtColor": cv2.cvtColor,
     "GaussianBlur": cv2.GaussianBlur,
     "medianBlur": cv2.medianBlur,
     "bilateralFilter": cv2.bilateralFilter,
@@ -38,18 +38,11 @@ FILTERS = {
     "erode": cv2.erode,
     "dilate": cv2.dilate,
     "morphologyEx": cv2.morphologyEx,
-#    "color_space_conversions": {
-        "BGR2HSV": cv2.COLOR_BGR2HSV,
-        "BGR2YUV": cv2.COLOR_BGR2YUV,
-        # Add more color space conversions as needed
-#    },
     "equalizeHist": cv2.equalizeHist,
     "filter2D": cv2.filter2D,
     "resize": cv2.resize,
- #   "rotation_and_affine_transformations": {
-        "getRotationMatrix2D": cv2.getRotationMatrix2D,
-        "warpAffine": cv2.warpAffine,
-#    },
+    "getRotationMatrix2D": cv2.getRotationMatrix2D,
+    "warpAffine": cv2.warpAffine,
     "warpPerspective": cv2.warpPerspective,
     "addWeighted": cv2.addWeighted
 }
@@ -57,6 +50,7 @@ FILTERS = {
 # Specify the path to your JSON file
 with open("./utils/opencv-filters.json", "r") as json_file:
     FILTERPARAMS = json.load(json_file)
+
 
 @ns.route('/image_manipulation', methods=['POST'])
 class ImageManipulation(Resource):
@@ -67,27 +61,28 @@ class ImageManipulation(Resource):
             data = request.get_json()
 
             if not data:
-                return {"error": "No JSON data provided"}, 400
+                return jsonify({"error": "No JSON data provided"})
 
             efx_name = data.get('efx_name', None)
             efx_value = data.get('efx_value', None)
             b64 = data.get('base64', None)
 
             if efx_name is None:
-                return {"error": "filter missing"}, 400
+                return jsonify({"error": "filter missing"})
 
             if b64 is None:
-                return {"error": "Missing base64 image"}, 400
+                return jsonify({"error": "Missing base64 image"})
 
             if efx_value is None or efx_name not in FILTERS or efx_name not in FILTERPARAMS:
-                return jsonify({"error": "Invalid filter name"}), 400
+                return jsonify({"error": "Invalid filter name"})
 
             binary_data = base64.b64decode(b64)
             mime_type = imghdr.what(None, h=binary_data)
-            src_np = np.frombuffer(binary_data, np.uint8)
-            src_image = Image.open(BytesIO(binary_data))
-
-
+            src_np = np.array(Image.open(BytesIO(binary_data)))
+            if efx_name == 'adaptiveThreshold':
+                src_np = cv2.cvtColor(src_np, cv2.COLOR_BGR2GRAY)
+            else:
+                src_np = cv2.cvtColor(src_np, cv2.COLOR_BGR2RGB)
 
             parameters = FILTERPARAMS[efx_name]
             topass = []
@@ -98,8 +93,7 @@ class ImageManipulation(Resource):
                 if param == 'src':
                     topass.insert(index, src_np)
                 elif param == 'dst':
-                    height, width, channels = src_np.shape
-                    dst = np.zeros((height, width, channels), dtype=np.uint8)
+                    dst = np.zeros_like(src_np)
                     topass.insert(index, dst)
                 else:
                     if param not in efx_value:
@@ -120,40 +114,72 @@ class ImageManipulation(Resource):
                             cast = bool(efx_value[param])
                         elif type == 'Size':
                             cast = self.parse_size(efx_value[param])
-                        elif type == 'Mat': # src2
-                            cast = cv2.imdecode(np.frombuffer(base64.b64decode(efx_value[param]), np.uint8), cv2.IMREAD_COLOR)
+                        elif type == 'Matrix':
+                            cast = self.parse_matrix(efx_value[param])
+                        elif type == 'base64':
+                            cast = self.convert_to_img(efx_value[param])
+                        elif type == 'anchor':
+                            cast = self.parse_anchor(efx_value[param])
+                        elif type == 'kernel':
+                            cast = self.parse_kernel(efx_value[param])
                         else:
                             cast = efx_value[param]
 
                         topass.insert(index, cast)
 
             method_function = FILTERS[efx_name]
+
+            if "src2" in parameters:
+                src2 = topass[parameters["src2"]["index"]]
+                topass[parameters["src2"]["index"]] = cv2.resize(src2, (topass[0].shape[1], topass[0].shape[0]))
+
             resp_np = method_function(*topass)
-            # resp_image = Image.fromarray(resp_np)
 
-            resp_b64 = base64.b64encode(resp_np.tobytes()).decode("utf-8")
-            # resp_b64 = base64.b64encode(src_np.tobytes()).decode("utf-8")
+            if resp_np is not None and len(resp_np.shape) == 2:
+                if resp_np.dtype != np.uint8:
+                    resp_np = resp_np.astype(np.uint8)
 
-            # image = Image.fromarray(src_np)
-            # image = Image.open(BytesIO(binary_data))
-
-            # buffer = BytesIO()
-            # resp_image.save(buffer, format=mime_type)  # You can specify the desired image format (e.g., PNG)
-            # image = Image.open(buffer)
-            # resp_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            __, im_arr = cv2.imencode('.' + mime_type, resp_np)
+            im_bytes = im_arr.tobytes()
+            resp_b64 = base64.b64encode(im_bytes).decode()
 
             return jsonify({"b64": resp_b64})
 
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": str(e)})
 
+    def parse_matrix(self, matrix_str):
+        try:
+            # Load the JSON-formatted matrix string
+            matrix_data = json.loads(matrix_str)
+
+            # Convert the nested list to a NumPy array
+            matrix = np.array(matrix_data)
+
+            return matrix
+        except (ValueError, json.JSONDecodeError):
+            # Handle any potential parsing errors
+            print("Error parsing the JSON-formatted matrix string.")
+            return None
+
+    def convert_to_img(self, b64_img):
+        img = np.array(Image.open(
+            BytesIO(base64.b64decode(b64_img))
+        ))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return img
+
+    def parse_anchor(self, point_str):
+        values = point_str.strip("()").split(",")
+        anchor = (int(values[0]), int(values[1]))
+        return anchor
 
     def parse_point(self, point_str):
         # Define the Point namedtuple
         Point = namedtuple('Point', ['x', 'y'])
 
         # Use regular expression to extract coordinates
-        match = re.match(r"\((\d+), (\d+)\)", point_str)
+        match = re.match(r"\(([-\d]+), ([-\d]+)\)", point_str)
 
         if match:
             x = int(match.group(1))
@@ -180,3 +206,9 @@ class ImageManipulation(Resource):
             return size
         else:
             raise ValueError("Invalid size format")
+
+    def parse_kernel(self, size_str):
+        values = size_str.split("x")
+        size = (int(values[0]), int(values[1]))
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, size)
+        return kernel

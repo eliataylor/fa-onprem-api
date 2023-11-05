@@ -1,139 +1,120 @@
 {
-    "grayscale": {
-        "src": { "type": "Mat", "index": 0 },
-        "code": { "type": "int", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 },
+    "cvtColor": {
+        "src": { "type": "Matrix", "index": 0 },
+        "code": { "type": "Scalar", "index": 1 },
+        "dst": { "type": "Matrix", "index": 2 },
         "dstCn": { "type": "int", "index": 3 }
     },
     "GaussianBlur": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "ksize": { "type": "Size", "index": 1 },
         "sigmaX": { "type": "double", "index": 2 },
         "sigmaY": { "type": "double", "index": 3 },
         "borderType": { "type": "Scalar", "index": 4 }
     },
     "medianBlur": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "ksize": { "type": "int", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 }
+        "dst": { "type": "Matrix", "index": 2 }
     },
     "bilateralFilter": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "d": { "type": "int", "index": 1 },
         "sigmaColor": { "type": "double", "index": 2 },
         "sigmaSpace": { "type": "double", "index": 3 },
-        "dst": { "type": "Mat", "index": 4 },
+        "dst": { "type": "Matrix", "index": 4 },
         "borderType": { "type": "Scalar", "index": 5 }
     },
     "Canny": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "threshold1": { "type": "double", "index": 1 },
         "threshold2": { "type": "double", "index": 2 },
-        "edges": { "type": "Mat", "index": 3 },
+        "edges": { "type": "Matrix", "index": 3 },
         "apertureSize": { "type": "int", "index": 4 },
         "L2gradient": { "type": "bool", "index": 5 }
     },
     "Sobel": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "ddepth": { "type": "int", "index": 1 },
         "dx": { "type": "int", "index": 2 },
         "dy": { "type": "int", "index": 3 },
-        "dst": { "type": "Mat", "index": 4 },
+        "dst": { "type": "Matrix", "index": 4 },
         "ksize": { "type": "int", "index": 5 },
         "scale": { "type": "double", "index": 6 },
         "delta": { "type": "double", "index": 7 },
         "borderType": { "type": "Scalar", "index": 8 }
     },
     "Laplacian": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "ddepth": { "type": "int", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 },
+        "dst": { "type": "Matrix", "index": 2 },
         "ksize": { "type": "int", "index": 3 },
         "scale": { "type": "double", "index": 4 },
         "delta": { "type": "double", "index": 5 },
         "borderType": { "type": "Scalar", "index": 6 }
     },
-    "threshold": {
-        "src": { "type": "Mat", "index": 0 },
-        "thresh": { "type": "double", "index": 1 },
-        "maxval": { "type": "double", "index": 2 },
-        "type": { "type": "Scalar", "index": 3 },
-        "dst": { "type": "Mat", "index": 4 }
-    },
     "adaptiveThreshold": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "maxval": { "type": "double", "index": 1 },
         "adaptiveMethod": { "type": "Scalar", "index": 2 },
         "thresholdType": { "type": "Scalar", "index": 3 },
         "blockSize": { "type": "int", "index": 4 },
         "C": { "type": "double", "index": 5 },
-        "dst": { "type": "Mat", "index": 6 }
+        "dst": { "type": "Matrix", "index": 6 }
     },
     "fastNlMeansDenoising": {
-        "src": { "type": "Mat", "index": 0 },
-        "dst": { "type": "Mat", "index": 1 },
+        "src": { "type": "Matrix", "index": 0 },
+        "dst": { "type": "Matrix", "index": 1 },
         "h": { "type": "double", "index": 2 },
         "hForColorComponents": { "type": "double", "index": 3 },
         "templateWindowSize": { "type": "int", "index": 4 },
         "searchWindowSize": { "type": "int", "index": 5 }
     },
     "erode": {
-        "src": { "type": "Mat", "index": 0 },
-        "kernel": { "type": "Mat", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 },
-        "anchor": { "type": "Point", "index": 3 },
+        "src": { "type": "Matrix", "index": 0 },
+        "dst": { "type": "Matrix", "index": 1 },
+        "kernel": { "type": "kernel", "index": 2 },
+        "anchor": { "type": "anchor", "index": 3 },
         "iterations": { "type": "int", "index": 4 },
         "borderType": { "type": "Scalar", "index": 5 },
         "borderValue": { "type": "int", "index": 6 }
     },
     "dilate": {
-        "src": { "type": "Mat", "index": 0 },
-        "kernel": { "type": "Mat", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 },
-        "anchor": { "type": "Point", "index": 3 },
+        "src": { "type": "Matrix", "index": 0 },
+        "kernel": { "type": "kernel", "index": 1 },
+        "dst": { "type": "Matrix", "index": 2 },
+        "anchor": { "type": "anchor", "index": 3 },
         "iterations": { "type": "int", "index": 4 },
         "borderType": { "type": "Scalar", "index": 5 },
         "borderValue": { "type": "int", "index": 6 }
     },
     "morphologyEx": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "op": { "type": "int", "index": 1 },
-        "kernel": { "type": "Mat", "index": 2 },
-        "dst": { "type": "Mat", "index": 3 },
-        "anchor": { "type": "Point", "index": 4 },
+        "kernel": { "type": "kernel", "index": 2 },
+        "dst": { "type": "Matrix", "index": 3 },
+        "anchor": { "type": "anchor", "index": 4 },
         "iterations": { "type": "int", "index": 5 },
         "borderType": { "type": "Scalar", "index": 6 },
         "borderValue": { "type": "int", "index": 7 }
     },
-    "BGR2HSV": {
-        "src": { "type": "Mat", "index": 0 },
-        "code": { "type": "int", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 },
-        "dstCn": { "type": "int", "index": 3 }
-    },
-    "BGR2YUV": {
-        "src": { "type": "Mat", "index": 0 },
-        "code": { "type": "int", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 },
-        "dstCn": { "type": "int", "index": 3 }
-    },
     "equalizeHist": {
-        "src": { "type": "Mat", "index": 0 },
-        "dst": { "type": "Mat", "index": 1 }
+        "src": { "type": "Matrix", "index": 0 },
+        "dst": { "type": "Matrix", "index": 1 }
     },
     "filter2D": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "ddepth": { "type": "int", "index": 1 },
-        "kernel": { "type": "Mat", "index": 2 },
-        "dst": { "type": "Mat", "index": 3 },
-        "anchor": { "type": "Point", "index": 4 },
+        "kernel": { "type": "kernel", "index": 2 },
+        "dst": { "type": "Matrix", "index": 3 },
+        "anchor": { "type": "anchor", "index": 4 },
         "delta": { "type": "double", "index": 5 },
         "borderType": { "type": "Scalar", "index": 6 }
     },
     "resize": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "dsize": { "type": "Size", "index": 1 },
-        "dst": { "type": "Mat", "index": 2 },
+        "dst": { "type": "Matrix", "index": 2 },
         "fx": { "type": "double", "index": 3 },
         "fy": { "type": "double", "index": 4 },
         "interpolation": { "type": "Scalar", "index": 5 }
@@ -144,30 +125,30 @@
         "scale": { "type": "double", "index": 2 }
     },
     "warpAffine": {
-        "src": { "type": "Mat", "index": 0 },
-        "M": { "type": "Mat", "index": 1 },
+        "src": { "type": "Matrix", "index": 0 },
+        "M": { "type": "Matrix", "index": 1 },
         "dsize": { "type": "Size", "index": 2 },
-        "dst": { "type": "Mat", "index": 3 },
+        "dst": { "type": "Matrix", "index": 3 },
         "flags": { "type": "Scalar", "index": 4 },
-        "borderMode": { "type": "int", "index": 5 },
+        "borderMode": { "type": "Scalar", "index": 5 },
         "borderValue": { "type": "int", "index": 6 }
     },
     "warpPerspective": {
-        "src": { "type": "Mat", "index": 0 },
-        "M": { "type": "Mat", "index": 1 },
+        "src": { "type": "Matrix", "index": 0 },
+        "M": { "type": "Matrix", "index": 1 },
         "dsize": { "type": "Size", "index": 2 },
-        "dst": { "type": "Mat", "index": 3 },
+        "dst": { "type": "Matrix", "index": 3 },
         "flags": { "type": "Scalar", "index": 4 },
-        "borderMode": { "type": "int", "index": 5 },
+        "borderMode": { "type": "Scalar", "index": 5 },
         "borderValue": { "type": "int", "index": 6 }
     },
     "addWeighted": {
-        "src": { "type": "Mat", "index": 0 },
+        "src": { "type": "Matrix", "index": 0 },
         "alpha": { "type": "double", "index": 1 },
-        "src2": { "type": "Mat", "index": 2 },
+        "src2": { "type": "base64", "index": 2 },
         "beta": { "type": "double", "index": 3 },
         "gamma": { "type": "double", "index": 4 },
-        "dst": { "type": "Mat", "index": 5 },
+        "dst": { "type": "Matrix", "index": 5 },
         "dtype": { "type": "int", "index": 6 }
     }
 }

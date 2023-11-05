@@ -27,8 +27,8 @@ request_model = ns.model('MotionDetectionModel', {
 @ns.route('/detect_motion')
 class MotionDetection(Resource):
 
-    def mergeBase64(self, bg, mask, camId):
-        image1 = Image.open(BytesIO(base64.b64decode(bg)))
+    def mergeBase64(self, image1, mask, camId):
+        # image1 = Image.open(BytesIO(base64.b64decode(bg)))
         image2 = Image.open(BytesIO(base64.b64decode(mask)))
         if image2.mode != 'RGBA':
             image2 = image2.convert('RGBA')
@@ -89,7 +89,7 @@ class MotionDetection(Resource):
         tmpname = f'/tmp/lastseen-{camId}-flat.jpg'  # maybe prefix the name with a client id?
 
         frameImage = self.getCameraImage(camHost, camId)
-        if not isinstance(frameImage, str):
+        if not isinstance(frameImage, Image.Image):
             return frameImage
 
         baseImage = frameImage
@@ -100,8 +100,8 @@ class MotionDetection(Resource):
             baseImage = self.mergeBase64(baseImage, mask_str, camId)
 
         # reduce image to 640 wide / downsize only
-        if baseImage.size.width > 640:
-            new_height = int(baseImage.size.height * (640 / baseImage.size.width))
+        if baseImage.width > 640:
+            new_height = int(baseImage.height * (640 / baseImage.width))
             baseImage = baseImage.resize((640, new_height), Image.ANTIALIAS)
 
         last_seen_np = cv2.imread(tmpname, cv2.IMREAD_UNCHANGED)
