@@ -117,6 +117,8 @@ class MotionDetection(Resource):
                 last_seen_np = last_seen_np.astype(np.uint8)
 
                 win_size = min(min(baseimage_np.shape), min(last_seen_np.shape))
+                if win_size % 2 == 0:  # win_size must be odd
+                    win_size -= 1  #
                 similarity_score = ssim(baseimage_np, last_seen_np, win_size=win_size)
                 # similarity_score = 0 if similarity_score > 0 else (similarity_score + 1) * 50  # as percent > 0
                 similarity_score = (similarity_score + 1) * 50  # as percentage of (-1 to 1)
