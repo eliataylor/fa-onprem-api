@@ -90,7 +90,7 @@ class MotionDetection(Resource):
 
         frameImage = self.getCameraImage(camHost, camId)
         if not isinstance(frameImage, Image.Image):
-            return frameImage
+            return jsonify(frameImage[0])
 
         baseImage = frameImage
         if mask is not None:

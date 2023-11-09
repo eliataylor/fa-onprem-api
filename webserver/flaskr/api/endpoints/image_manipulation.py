@@ -55,6 +55,7 @@ with open("./utils/opencv-filters.json", "r") as json_file:
 @ns.route('/image_manipulation', methods=['POST'])
 class ImageManipulation(Resource):
 
+
     @ns.expect(request_model)  # Use the expect decorator with the request model
     def post(self):
         try:
