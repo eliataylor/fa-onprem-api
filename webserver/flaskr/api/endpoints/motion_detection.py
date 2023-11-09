@@ -93,7 +93,7 @@ class MotionDetection(Resource):
             return jsonify(frameImage[0])
 
         baseImage = frameImage
-        if mask is not None:
+        if mask is not None and mask != '':
             mask_str = self.getMaskById(detectHost, mask)
             if not isinstance(mask_str, str):
                 return mask_str
