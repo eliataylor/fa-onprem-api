@@ -132,13 +132,13 @@ class MotionDetection(Resource):
 
         if threshold < response_data['score']:
             response_data["changed"] = True
-            return response_data, 200
+            return jsonify(response_data), 200
         else:
             if debounce > 0:
                 time.sleep(debounce / 1000)
                 self.compareImages(data)
             else:
-                return response_data, 200 # negative debounce allows the front-end to control retries by polling this endpoint
+                return jsonify(response_data), 200  # negative debounce allows the front-end to control retries by polling this endpoint
 
 
     @ns.expect(request_model)
