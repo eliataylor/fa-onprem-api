@@ -16,15 +16,14 @@ ns = Namespace('test', description='Skeleton flask app')
 
 # Define the expected request model (JSON body)
 request_model = ns.model('MotionDetectionModel', {
+    'ip': fields.String(description='FV Config IP Address', required=True),
     'camId': fields.String(description='Camera ID', required=True),
-    'camhost': fields.String(description='Camera Server Host', required=True),
-    'fvhost': fields.String(description='Mask Server Host', required=True),
-    'maskId': fields.String(description='ID of Mask to ignore areas of change'),
-    'threshold': fields.Float(description='Threshold value -1 (no similarity) to 1 (identical)', required=True),
-    'debounce': fields.Integer(description='Milliseconds to wait for retry. Use a negative value to return anyway and allow front-end to poll this endpoint', required=True)
+    'maskId': fields.String(description='ID of Mask to ignore areas of change', required=False),
+    'threshold': fields.Float(description='Threshold value -1 (no similarity) to 1 (identical)', required=False),
+    'debounce': fields.Integer(description='Milliseconds to wait for retry. Use a negative value to return anyway and allow front-end to poll this endpoint', required=False)
 })
 
-@ns.route('/detect_motion')
+@ns.route('/detect_motion', methods=['POST'])
 class MotionDetection(Resource):
 
     def mergeBase64(self, image1, mask, camId):
@@ -42,9 +41,9 @@ class MotionDetection(Resource):
         result_image = result_image.convert("RGB")
         return result_image
 
-    def getMaskById(self, detectHost, mask):
+    def getMaskById(self, ip, mask):
         try:
-            response = requests.get(f"{detectHost}/api/capture/mask/get_masks")
+            response = requests.get(f"http://{ip}:5000/api/capture/mask/get_masks")
             if response.status_code == 200:
                 json_data = response.json()
                 mask = next((person for person in json_data if person["maskId"] == mask), None)
@@ -58,9 +57,9 @@ class MotionDetection(Resource):
             return {"error": f"mask request exception thrown: {e}"}, 500
 
 
-    def getCameraImage(self, camHost, camId):
+    def getCameraImage(self, ip, camId):
         try:
-            response = requests.get(f"{camHost}/api/vision/vision/b64Frame/{camId}")
+            response = requests.get(f"http://{ip}:5555/api/vision/vision/b64Frame/{camId}")
             if response.status_code == 200:
                 json_data = response.json()
                 if "b64" in json_data:
@@ -77,8 +76,7 @@ class MotionDetection(Resource):
     def compareImages(self, data) :
         camId = data.get('camId', None)
         mask = data.get('mask', None)
-        camHost = data.get('camhost', None)
-        detectHost = data.get('fvhost', None)
+        ip = data.get('ip', None)
         threshold = data.get('threshold', 50)
         if threshold is None:
             threshold = 0
@@ -88,15 +86,16 @@ class MotionDetection(Resource):
 
         tmpname = f'/tmp/lastseen-{camId}-flat.jpg'  # maybe prefix the name with a client id?
 
-        frameImage = self.getCameraImage(camHost, camId)
+        frameImage = self.getCameraImage(ip, camId)
         if not isinstance(frameImage, Image.Image):
-            return jsonify(frameImage[0])
+            return frameImage, 201 # is an error dictionary
+
 
         baseImage = frameImage
         if mask is not None and mask != '':
-            mask_str = self.getMaskById(detectHost, mask)
+            mask_str = self.getMaskById(ip, mask)
             if not isinstance(mask_str, str):
-                return mask_str
+                return mask_str, 201 # is an error dictionary
             baseImage = self.mergeBase64(baseImage, mask_str, camId)
 
         # reduce image to 640 wide / downsize only
@@ -123,7 +122,7 @@ class MotionDetection(Resource):
                 # similarity_score = 0 if similarity_score > 0 else (similarity_score + 1) * 50  # as percent > 0
                 similarity_score = (similarity_score + 1) * 50  # as percentage of (-1 to 1)
 
-            response_data = {"score": similarity_score}
+            response_data = {"score": round(similarity_score)}
 
         baseImage.save(tmpname, format="JPEG")
         buffered = BytesIO()
@@ -132,13 +131,13 @@ class MotionDetection(Resource):
 
         if threshold < response_data['score']:
             response_data["changed"] = True
-            return jsonify(response_data), 200
+            return response_data, 200
         else:
             if debounce > 0:
                 time.sleep(debounce / 1000)
-                self.compareImages(data)
+                return self.compareImages(data)
             else:
-                return jsonify(response_data), 200  # negative debounce allows the front-end to control retries by polling this endpoint
+                return response_data, 200
 
 
     @ns.expect(request_model)
@@ -149,20 +148,17 @@ class MotionDetection(Resource):
             if not data:
                 return {"error": "No JSON data provided"}, 400
 
+            ip = data.get('ip', None)
+
+            if ip is None:
+                return {"error": "API IP Address is missing"}, 400
+
             camId = data.get('camId', None)
-            camHost = data.get('camhost', None)
-            detectHost = data.get('fvhost', None)
-
-            if camHost is None:
-                return {"error": "Camera Host missing"}, 400
-
-            if detectHost is None:
-                return {"error": "Detect Host missing"}, 400
-
             if camId is None:
                 return {"error": "Missing camera"}, 400
 
-            return self.compareImages(data)
+            result, status_code = self.compareImages(data)
+            return jsonify(result)
 
         except Exception as e:
             return jsonify({"error": str(e)}), 500

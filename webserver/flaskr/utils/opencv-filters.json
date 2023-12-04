@@ -30,8 +30,7 @@
         "threshold1": { "type": "double", "index": 1 },
         "threshold2": { "type": "double", "index": 2 },
         "edges": { "type": "Matrix", "index": 3 },
-        "apertureSize": { "type": "int", "index": 4 },
-        "L2gradient": { "type": "bool", "index": 5 }
+        "apertureSize": { "type": "int", "index": 4 }
     },
     "Sobel": {
         "src": { "type": "Matrix", "index": 0 },
